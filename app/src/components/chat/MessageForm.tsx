@@ -20,6 +20,8 @@ const MessageForm: React.FC = () => {
   const messageText = watch("text", "");
   const [socket, setSocket] = useState<Socket | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [isTyping, setIsTyping] = useState(false);
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
 
   const allowToSend = messageText.trim() !== "";
 
@@ -41,11 +43,38 @@ const MessageForm: React.FC = () => {
       setMessages((prev) => [...prev, message]);
     });
 
+    socket.on("userTyping", (userId: string) => {
+      setTypingUsers((prev) => [...prev, userId]);
+    });
+
+    socket.on("userStoppedTyping", (userId: string) => {
+      setTypingUsers((prev) => prev.filter((id) => id !== userId));
+    });
+
     // on a appeler le serveur socket.io pour se deconnecter
     return () => {
       socket.disconnect();
     };
   }, []);
+
+  // Обработка набора текста
+  useEffect(() => {
+    if (!socket) return;
+
+    const typingTimeout = setTimeout(() => {
+      if (isTyping) {
+        socket.emit("typing", false);
+        setIsTyping(false);
+      }
+    }, 1000);
+
+    if (messageText && !isTyping) {
+      socket.emit("typing", true);
+      setIsTyping(true);
+    }
+
+    return () => clearTimeout(typingTimeout);
+  }, [messageText, socket, isTyping]);
 
   const mutation = useMutation({
     mutationFn: (data: CreateMessageDto) => messageService.create(data),
@@ -58,6 +87,8 @@ const MessageForm: React.FC = () => {
   const onSubmit = (data: CreateMessageDto) => {
     if (socket) {
       socket.emit("messageFromClient", data.text);
+      socket.emit("typing", false);
+      setIsTyping(false);
     }
     mutation.mutate(data);
   };
@@ -75,6 +106,13 @@ const MessageForm: React.FC = () => {
             </div>
           </div>
         ))}
+        {typingUsers.length > 0 && (
+          <div className="text-sm text-gray-500 italic">
+            {typingUsers.length === 1
+              ? "Someone is typing..."
+              : "Multiple people are typing..."}
+          </div>
+        )}
       </div>
       <form onSubmit={handleSubmit(onSubmit)} className="relative p-4">
         <div className="flex gap-2">

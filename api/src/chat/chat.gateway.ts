@@ -28,6 +28,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @UseGuards(WsAuthGuard)
+  @SubscribeMessage('typing')
+  handleTyping(client: Socket, isTyping: boolean) {
+    if (isTyping) {
+      this.server.emit('userTyping', client.data.user.id);
+    } else {
+      this.server.emit('userStoppedTyping', client.data.user.id);
+    }
+  }
+
+  @UseGuards(WsAuthGuard)
   @SubscribeMessage('messageFromClient')
   handleMessage(client: Socket, message: string) {
     this.server.emit('messageFromBack', {
