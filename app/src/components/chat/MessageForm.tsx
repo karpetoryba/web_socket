@@ -1,18 +1,44 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   messageService,
   CreateMessageDto,
 } from "../../services/messageService";
+import { io, Socket } from "socket.io-client";
 import { SendHorizontal } from "lucide-react";
 
 const MessageForm: React.FC = () => {
   const { register, handleSubmit, reset, watch } = useForm<CreateMessageDto>();
   const queryClient = useQueryClient();
   const messageText = watch("text", "");
+  const [socket, setSocket] = useState<Socket | null>(null);
 
   const allowToSend = messageText.trim() !== "";
+
+  // on a appeler le serveur socket.io pour se connecter
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    const socket = io("http://localhost:8000", {
+      auth: {
+        token,
+      },
+    });
+
+    socket.on("connect", () => {
+      console.log("Connected to server");
+      setSocket(socket);
+    });
+
+    socket.on("messageFromBack", (message: string) => {
+      console.log("Message from server", message);
+    });
+
+    // on a appeler le serveur socket.io pour se deconnecter
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   const mutation = useMutation({
     mutationFn: (data: CreateMessageDto) => messageService.create(data),
@@ -23,6 +49,9 @@ const MessageForm: React.FC = () => {
   });
 
   const onSubmit = (data: CreateMessageDto) => {
+    if (socket) {
+      socket.emit("messageFromClient", data.text);
+    }
     mutation.mutate(data);
   };
 

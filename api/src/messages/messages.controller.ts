@@ -28,7 +28,6 @@ export class MessagesController {
     @Request() req: RequestWithUser,
     @Body() createMessageDto: CreateMessageDto,
   ) {
-    console.log('createMessageDto : ', req.user.id);
     return this.messagesService.create(createMessageDto, req.user.id);
   }
 

@@ -17,7 +17,6 @@ export class MessagesService {
     createMessageDto: CreateMessageDto,
     userId: string,
   ): Promise<Message> {
-    console.log('createMessageDto : ', createMessageDto);
     const user = await this.usersService.findOne(userId);
     const message = this.messagesRepository.create({
       ...createMessageDto,

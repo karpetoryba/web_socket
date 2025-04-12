@@ -29,7 +29,6 @@ class AuthService {
       email: data.email,
       password: data.password,
     });
-    console.log(response.data);
     this.setToken(response.data.access_token);
     return response.data;
   }
