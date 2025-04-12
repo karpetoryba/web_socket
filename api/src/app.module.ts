@@ -5,6 +5,9 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { MessagesModule } from './messages/messages.module';
 import { Gateway } from './gateway';
+import { ChatGateway } from './chat/chat.gateway';
+import { WsAuthGuard } from './auth/ws-auth.guard';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -22,7 +25,11 @@ import { Gateway } from './gateway';
     UsersModule,
     AuthModule,
     MessagesModule,
+    JwtModule.register({
+      secret: process.env.JWT_SECRET || 'your-secret-key',
+      signOptions: { expiresIn: '1d' },
+    }),
   ],
-  providers: [Gateway],
+  providers: [Gateway, ChatGateway, WsAuthGuard],
 })
 export class AppModule {}
